@@ -33,7 +33,19 @@ async function initProject() {
 		}),
 		[] // problemMatchers if any
 	);
-	await vscode.tasks.executeTask(CreatePythonEnvTask)
+	const taskExecution = await vscode.tasks.executeTask(CreatePythonEnvTask); //note: the vscode task executer returns after the task has been initiated to wait till the end we must create an event listener
+
+	// Wrap task completion in a Promise
+	await new Promise((resolve) => {
+		const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+		if (e.execution === taskExecution) {
+			disposable.dispose(); // Clean up the event listener
+			resolve(); // Continue after task ends
+		}
+		});
+	});
+
+	vscode.window.showInformationMessage("python env initlizied");
 
 	console.log(vscode.workspace.getConfiguration("python"));
 	// sets the new interperter in the python extention setting + creates a new terminal and opens it
@@ -57,6 +69,16 @@ async function initProject() {
 		vscode.Uri.joinPath(extentionPath, "resources", "settings.json"),
 		vscode.Uri.joinPath(rootPath, ".vscode", "settings.json")
 	)
+
+	const main_file = Buffer.from("import machine");
+	await vscode.workspace.fs.writeFile(
+		vscode.Uri.joinPath(rootPath,"main.py"),
+		main_file
+	);
+
+	const main_file_show = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(rootPath,"main.py"));
+	vscode.window.showTextDocument(main_file_show);
+	
 }
 
 async function activate(context) {
