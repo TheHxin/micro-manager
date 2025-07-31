@@ -22,9 +22,7 @@ async function getRootPath() { //if there are more than one workspace it will as
 
 async function initProject() {
 
-	//vscode.window.showInformationMessage("python3 -m venv " + rootPath + "/.venv");
-	//exec("python3 -m venv " + rootPath + "/.venv", () => {vscode.window.showInformationMessage("Python venv created")});
-
+	// creates the python env and installs packages
 	const CreatePythonEnvTask = new vscode.Task(
 		{ type: 'shell' }, // TaskDefinition
 		vscode.TaskScope.Workspace,
@@ -35,51 +33,24 @@ async function initProject() {
 		}),
 		[] // problemMatchers if any
 	);
-
-	vscode.tasks.executeTask(CreatePythonEnvTask).then(() => {
-		vscode.commands.executeCommand("python.setInterpreter");
-	});
-}
-
-async function test() {
+	await vscode.tasks.executeTask(CreatePythonEnvTask)
 
 	console.log(vscode.workspace.getConfiguration("python"));
-
+	// sets the new interperter in the python extention setting + creates a new terminal and opens it
 	vscode.workspace.getConfiguration("python").update(
 		"venvPath",
 		vscode.Uri.joinPath(rootPath, ".venv"),
 		vscode.ConfigurationTarget.workspace
 	);
-
 	vscode.window.createTerminal().show();
 
 	vscode.window.showInformationMessage(
 		vscode.Uri.joinPath(rootPath, ".venv")
 	);
 
+	//create the .vscode folder and copies the setting to it from the extension resources folder
 	await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(rootPath, ".vscode"));
 
-	const vscode_setting = Buffer.from(
-		`{
-	"python.languageServer": "Pylance",
-	"python.analysis.typeCheckingMode": "basic",
-	"python.analysis.diagnosticSeverityOverrides": {
-		"reportMissingModuleSource": "none"
-	},
-	
-	"python.analysis.typeshedPaths": [
-		".venv/Lib/site-packages",
-		"typings"
-	]	
-}`);
-
-	await vscode.workspace.fs.writeFile(
-		vscode.Uri.joinPath(rootPath, ".vscode", "setting.json"),
-		vscode_setting
-	);
-}
-
-async function test2() {
 	vscode.window.showInformationMessage(extentionPath);
 
 	await vscode.workspace.fs.copy(
@@ -87,6 +58,7 @@ async function test2() {
 		vscode.Uri.joinPath(rootPath, ".vscode", "settings.json")
 	)
 }
+
 async function activate(context) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with  registerCommand
@@ -98,7 +70,7 @@ async function activate(context) {
 	console.log(rootPath.path);
 	console.log(extentionPath.path);
 
-	const disposable = vscode.commands.registerCommand('micropython-manager.init-project', test2);
+	const disposable = vscode.commands.registerCommand('micropython-manager.init-project', initProject);
 	context.subscriptions.push(disposable);
 }
 
